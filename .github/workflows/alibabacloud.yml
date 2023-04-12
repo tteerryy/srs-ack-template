@@ -1,0 +1,34 @@
+
+name: Deploy SRS to ACK
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  k8s:
+    name: release-k8s
+    runs-on: ubuntu-20.04
+    if: github.event.repository.name != 'srs-ack-template'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      # Set ACK context
+      - name: Set K8s context
+        uses: aliyun/ack-set-context@v1
+        with:
+          access-key-id: "${{ secrets.ACCESS_KEY_ID }}"
+          access-key-secret: "${{ secrets.ACCESS_KEY_SECRET }}"
+          cluster-id: "${{ secrets.ACK_CLUSTER_ID }}"
+
+      # Deploy SRS image
+      - name: Deploy SRS image
+        run: |-
+          kubectl apply -f srs.yaml
+          kubectl get deploy/srs-deployment
+          kubectl get svc/srs-service
+          EIP=$(kubectl get svc/srs-service |grep srs-service |awk '{print $4}')
+          echo "Website:"
+          echo "  http://${EIP}:8080"
